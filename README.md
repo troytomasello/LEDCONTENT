@@ -6,8 +6,8 @@
 - **AI-generated motion:** Troy generates short clips in Flow/Veo; Claude loops them to 24 s, fits them to the screen size, regrades and encodes.
 - **Previews first:** the full-res master is rendered only after the preview is approved.
 - **Tools:** Troy works in C4D for stills and room renders, and uses Google Flow only for walk-through animations, not screen content.
-- **Loops are exactly 24 seconds** (720 frames at 30 fps) and seamless.
-- **Playback:** a disguise server. Final codec is HAP / HAP Q at 30 fps (to be confirmed with the operator).
+- **Loops are exactly 24 seconds at 60 fps** (1440 frames) and seamless. Previews are 30 fps to save bandwidth.
+- **Playback:** a disguise server. The operator wants **ProRes**, so masters stay as small H.264 in the repo and Troy converts locally with `scripts/make_prores.sh` (422 HQ by default; confirm 422 vs 422 HQ with the operator). Frame rate confirmed: 60 fps..
 
 ## LED surfaces
 | ID | Surface | Pixels |
@@ -25,27 +25,30 @@ The LED floor has been cut.
 - Peaks are capped at about 92% for LED headroom. Avoid full-white flashes and fine pinstripes, which cause moiré.
 - Pillars of Creation: ESA/Hubble heic1501a, CC BY 4.0. Credit "NASA, ESA/Hubble and the Hubble Heritage Team".
 
-## Deliverables
-| Item | Status | Notes |
-|---|---|---|
-| B/C side loops v03 | Preview sent | 24 s seamless (6 s crossfade at the loop point), slow drift and churning clouds. C is a mirrored crop of B. Masters rendered and kept in the workspace. |
-| A still plate v02 | Delivered | Graded Pillars, sides extended with the matching nebula. |
-| A loop v01 | Rejected | Mostly camera float; too little internal motion. |
-| A loop v02 (gas flows) | Superseded | 60 s version. |
-| A loop v03 (gas flows) | Preview sent | 24 s. Flowing gas, gas peeling off the pillars, stars held still. Awaiting feedback before the 4K master. |
-| A loop from Flow clip v01 | Preview sent | Troy's Flow clip (1280×720, 8 s): push-in removed, slowed 3.4× with generated in-between frames, 3 s blend at the loop point, stars replaced. `scripts/flowloop.py`. |
-| Lava lamp look v02 (all screens) | Masters in repo | Neon pink and blue glowing wax, no shine, one slow rise and fall per 24 s. A, B and C have wax pools top (blue) and bottom (pink); the ceiling has free-floating blobs, no pools. `masters/lava/`, `scripts/lava.py`. |
-| Lava lamp classic v03 (all screens) | Masters in repo | Red/orange wax on periwinkle-indigo, colors sampled from Troy's lamp photo. Same physical blob size on every screen (assumes equal pixel pitch). `masters/lava_classic/`, run with `classic fixed`. |
-| Interior plate (look 1) | Troy, in C4D | Flat-on camera at 3840 × 1536 with the porthole as an alpha. |
-| Ceiling loop v01 | Preview sent | 24 s, same nebula engine as the side windows, drifting top to bottom of the canvas (away from the DJ). Flat, no edge darkening. `scripts/render_ceiling.py`. |
-| Warp-speed full-room loop | Idea only | Needs screen geometry (OBJ/FBX from C4D) and the ceiling map. Render each surface from one 3D tunnel, or one 360° loop that disguise maps spatially. |
+## Deliverables (current: all 60 fps, 24 s)
+| Look | Screens | Repo folder | Notes |
+|---|---|---|---|
+| Nebula drift v04 | B, C, ceiling | `masters/nebula_drift/` | Slow drift, churning clouds, twinkling stars. C is a mirrored crop of B. Ceiling drifts down the canvas (top assumed upstage). |
+| Lava neon v03 | A, B, C, ceiling | `masters/lava_neon/` | Neon pink/blue glowing wax, no shine. Blob size scales with each screen's height. Ceiling has no pools. |
+| Lava classic v04 (big) | A, B, C, ceiling | `masters/lava_classic/` | Red/orange on periwinkle-indigo (from Troy's lamp photo). Big blobs (150–250 px radius), the same physical size on every screen, about 60–70% wax coverage. B uses 8 blobs, C uses 4. |
+| Pillars still v02 | A | `stills/` | Graded Pillars, sides extended with nebula. |
+| Pillars from Flow clip v01 | A | `masters/pillars_flow_30fps/` | Still 30 fps and 720p; redo from a 4K Flow export. |
+
+### Open items
+- Scenic overlay for A: Troy is making it in Nano Banana (green-screen window); Claude cuts the mask and composites.
+- Pillars flowing-gas loop: rejected the procedural version; the Flow-clip route is in progress.
+- Confirm the ceiling orientation (top = upstage?) and whether all 150 map slots are real tiles (Troy said 140).
+- Confirm every screen has the same pixel pitch (classic lava assumes it does).
+- Warp-speed full-room idea: needs screen geometry from C4D.
 
 ## Repo layout
-- `masters/`: full-res loops (H.264; convert to HAP for disguise). Lava looks in `masters/lava/` (neon) and `masters/lava_classic/`
+- `masters/`: full-res 60 fps loops (H.264). Convert to ProRes with `scripts/make_prores.sh`.
 - `stills/`: full-res still plates
-- `previews/`: small review copies
+- `previews/`: small 30 fps review copies
 - `source/`: clips from Flow
 - `scripts/`: the generators below
+
+The old 30 fps masters were removed from the folders but remain in the git history.
 
 ## Scripts (in the cloud workspace, /home/claude/portal)
 - `render2.py`: side loops B and C.
@@ -53,13 +56,8 @@ The LED floor has been cut.
 - `widefill.py`: nebula fill for the plate sides.
 - `render_ceiling.py`: ceiling loop (960 × 5760).
 - `flowloop.py`: turns a Flow clip into a 24 s loop (removes push-in, slows down, blends the loop point, replaces stars).
-- `lava.py`: lava lamp loop for any screen size (`seed=`, `nopools`, `classic` palette, `fixed` = same blob size on every screen).
+- `lava.py`: lava lamp loop for any screen size (`seed=`, `nopools`, `classic` palette, `fixed` = same blob size on every screen, `big`, `nb=` blob count).
 - `pillars_flow.py`: flowing-gas loop for A. Use `1280` for the preview and `3840` for the master.
-
-## Convert to ProRes for disguise (run locally)
-From the repo folder: `bash scripts/make_prores.sh` (ProRes 422 HQ; pass `2` for plain 422). Output goes to `./prores/`.
-One file: `ffmpeg -i INPUT.mp4 -c:v prores_ks -profile:v 3 -vendor apl0 -pix_fmt yuv422p10le -an OUTPUT_PRORES.mov`
-Sizes per 24 s loop at 422 HQ: about 1.8 GB upstage, 0.7 GB house left, 1.6 GB ceiling.
 
 ## Convert to HAP (run locally)
 ```

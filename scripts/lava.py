@@ -9,8 +9,10 @@ TEST = "test" in FLAGS
 POOLS = "nopools" not in FLAGS
 CLASSIC = "classic" in FLAGS
 FIXED = "fixed" in FLAGS
+BIG = "big" in FLAGS
+NB_OVERRIDE = int([f.split('=')[1] for f in FLAGS if f.startswith('nb=')][0]) if any(f.startswith('nb=') for f in FLAGS) else 0
 SEED = int([f.split("=")[1] for f in FLAGS if f.startswith("seed=")][0]) if any(f.startswith("seed=") for f in FLAGS) else 42
-FPS, L = 30, 720
+FPS, L = 60, 1440
 s = 1.0 if FIXED else H / 720.0                   # fixed => same blob size in px on every screen
 rng = np.random.default_rng(SEED)
 
@@ -29,7 +31,8 @@ if CLASSIC:                                       # sampled from Troy's referenc
     W_HOT  = np.array([1.0, .60, .41], np.float32)
 
 # --- blobs: periodic paths --------------------------------------------------
-NB = max(5, int(round(9 * .65 * W * H / (1280 * 720)))) if FIXED else max(5, int(round(9 * (W / H) / (16 / 9))))
+NB = max(3, int(round(.62 * W * H / (np.pi * 200 ** 2)))) if (FIXED and BIG) else max(5, int(round(9 * .65 * W * H / (1280 * 720)))) if FIXED else max(5, int(round(9 * (W / H) / (16 / 9))))
+NB = NB_OVERRIDE or NB
 bx0 = ((np.arange(NB) + rng.uniform(.15, .85, NB)) / NB * .9 + .05)[rng.permutation(NB)] * W
 by0 = (rng.uniform(.18, .82, NB) if FIXED else rng.uniform(.25, .75, NB)) * H
 ay = rng.uniform(.14, .26, NB) * (720 * s if FIXED else H)   # vertical travel (slow)
@@ -38,7 +41,7 @@ py = rng.uniform(0, 2 * np.pi, NB)
 ax = rng.uniform(10, 45, NB) * s
 kx = rng.integers(1, 3, NB)
 px = rng.uniform(0, 2 * np.pi, NB)
-rad = rng.uniform(70, 125, NB) * s
+rad = (rng.uniform(150, 250, NB) if BIG else rng.uniform(70, 125, NB)) * s
 kr = rng.integers(1, 3, NB)
 pr = rng.uniform(0, 2 * np.pi, NB)
 lil = rng.permutation(np.resize(np.array([0, 1, 0, 1, 0, 1, 1, 0, 0.5], np.float32), NB))   # 0 = pink, 1 = blue

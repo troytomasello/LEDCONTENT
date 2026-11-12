@@ -4,14 +4,14 @@ usage: render2.py test | full | widefill
 """
 import sys, subprocess, numpy as np, cv2
 
-FPS = 30
+FPS = 60
 LOOP_S, XF_S = 24, 6                      # loop length, crossfade length (s)
 L, T = LOOP_S * FPS, XF_S * FPS
 W, H, WC, X0 = 3648, 576, 1728, 960
 WP = 6144                                  # world width (periodic noise)
 # drift speeds in px/s (v01 was 60 / 120 / 180)
 V_NEB, V_FAR, V_WISP, V_MID, V_NEAR = 4.0, 6.0, 9.0, 11.0, 18.0
-OUT = "/home/claude/portal/out"
+OUT = "/home/claude/portal/out60"
 
 VOID   = np.array([.022, .010, .055], np.float32)
 SKY    = np.array([.26, .22, .58], np.float32)
@@ -49,7 +49,7 @@ def nebula_fields(h, w, seed=0):
 
 def shade(F, ph):
     """F: dict of (h,w) fields already warped/sliced. ph: loop phase (radians) for breathing."""
-    breathe = 0.10 * ((F["b1"] - .5) * np.cos(ph) + (F["b2"] - .5) * np.sin(ph))
+    breathe = 0.10 * ((F["b1"] - .5) * float(np.cos(ph)) + (F["b2"] - .5) * float(np.sin(ph)))
     n1 = F["n1"] + breathe
     d = ss(0.32, 0.97, n1) ** 1.5 * (0.45 + 0.75 * F["det"]) * (0.65 + 0.5 * F["base"])
     warm = ss(.35, .7, F["n2"])[..., None]
@@ -139,12 +139,12 @@ AMP1 = 20.0  # px of cloud churn
 def X(t):
     """Raw frame at time index t (not yet loop-blended), float32 linear-ish RGB."""
     sec = t / FPS
-    ph = 2 * np.pi * t / L
+    ph = float(2 * np.pi * t / L)
     # cloud warp in world coords (periodic in L => churn itself loops)
     sh = V_NEB * sec
     cols = (np.arange(W) + int(sh)) % WP
     ax, bx, ay, by = [f[:, cols] for f in WRP]
-    dx = AMP1 * (ax * np.cos(ph) + bx * np.sin(ph)) + 0.5 * AMP1 * (ay * np.cos(2 * ph + 1) - bx * np.sin(2 * ph + 1))
+    dx = AMP1 * (ax * float(np.cos(ph)) + bx * float(np.sin(ph))) + 0.5 * AMP1 * (ay * np.cos(2 * ph + 1) - bx * np.sin(2 * ph + 1))
     dy = AMP1 * .55 * (ay * np.cos(ph) + by * np.sin(ph))
     dx, dy = dx.astype(np.float32), dy.astype(np.float32)
     mx = ((XX + sh + dx) % WP).astype(np.float32)
