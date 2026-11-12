@@ -34,12 +34,13 @@ The LED floor has been cut.
 | A loop v02 (gas flows) | Superseded | 60 s version. |
 | A loop v03 (gas flows) | Preview sent | 24 s. Flowing gas, gas peeling off the pillars, stars held still. Awaiting feedback before the 4K master. |
 | A loop from Flow clip v01 | Preview sent | Troy's Flow clip (1280×720, 8 s): push-in removed, slowed 3.4× with generated in-between frames, 3 s blend at the loop point, stars replaced. `scripts/flowloop.py`. |
+| Lava lamp look v02 (all screens) | Masters in repo | Neon pink and blue glowing wax, no shine, one slow rise and fall per 24 s. A, B and C have wax pools top (blue) and bottom (pink); the ceiling has free-floating blobs, no pools. `masters/lava/`, `scripts/lava.py`. |
 | Interior plate (look 1) | Troy, in C4D | Flat-on camera at 3840 × 1536 with the porthole as an alpha. |
 | Ceiling loop v01 | Preview sent | 24 s, same nebula engine as the side windows, drifting top to bottom of the canvas (away from the DJ). Flat, no edge darkening. `scripts/render_ceiling.py`. |
 | Warp-speed full-room loop | Idea only | Needs screen geometry (OBJ/FBX from C4D) and the ceiling map. Render each surface from one 3D tunnel, or one 360° loop that disguise maps spatially. |
 
 ## Repo layout
-- `masters/`: full-res loops (H.264; convert to HAP for disguise)
+- `masters/`: full-res loops (H.264; convert to HAP for disguise). Lava look in `masters/lava/`
 - `stills/`: full-res still plates
 - `previews/`: small review copies
 - `source/`: clips from Flow
@@ -51,6 +52,7 @@ The LED floor has been cut.
 - `widefill.py`: nebula fill for the plate sides.
 - `render_ceiling.py`: ceiling loop (960 × 5760).
 - `flowloop.py`: turns a Flow clip into a 24 s loop (removes push-in, slows down, blends the loop point, replaces stars).
+- `lava.py`: lava lamp loop for any screen size (`seed=`, `nopools`).
 - `pillars_flow.py`: flowing-gas loop for A. Use `1280` for the preview and `3840` for the master.
 
 ## Convert to HAP (run locally)

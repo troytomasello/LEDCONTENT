@@ -4,10 +4,13 @@ usage: lava.py OUT.mp4 W H [test]
 import sys, os, subprocess, numpy as np, cv2
 
 OUT, W, H = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
-TEST = len(sys.argv) > 4
+FLAGS = sys.argv[4:]
+TEST = "test" in FLAGS
+POOLS = "nopools" not in FLAGS
+SEED = int([f.split("=")[1] for f in FLAGS if f.startswith("seed=")][0]) if any(f.startswith("seed=") for f in FLAGS) else 42
 FPS, L = 30, 720
 s = H / 720.0                                     # scale: constants are written for 720 tall
-rng = np.random.default_rng(42)
+rng = np.random.default_rng(SEED)
 
 # palette: neon pink / neon blue on near-black violet
 BG_TOP = np.array([.012, .006, .035], np.float32)
@@ -17,8 +20,8 @@ BLUE   = np.array([.08, .52, 1.00], np.float32)
 HOT    = np.array([1.00, .80, .95], np.float32)   # near-white tube core
 
 # --- blobs: periodic paths --------------------------------------------------
-NB = 9
-bx0 = rng.uniform(.08, .92, NB) * W
+NB = max(5, int(round(9 * (W / H) / (16 / 9))))
+bx0 = ((np.arange(NB) + rng.uniform(.15, .85, NB)) / NB * .9 + .05)[rng.permutation(NB)] * W
 by0 = rng.uniform(.25, .75, NB) * H
 ay = rng.uniform(.14, .26, NB) * H                # vertical travel (slow)
 ky = np.ones(NB, int)                             # one rise+fall per 24 s loop
@@ -29,7 +32,7 @@ px = rng.uniform(0, 2 * np.pi, NB)
 rad = rng.uniform(70, 125, NB) * s
 kr = rng.integers(1, 3, NB)
 pr = rng.uniform(0, 2 * np.pi, NB)
-lil = np.array([0, 1, 0, 1, 0, 1, 1, 0, 0.5], np.float32)[:NB]   # 0 = pink, 1 = blue
+lil = rng.permutation(np.resize(np.array([0, 1, 0, 1, 0, 1, 1, 0, 0.5], np.float32), NB))   # 0 = pink, 1 = blue
 
 yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
 T = 0.42                                          # iso threshold: wyvill (1-.25)^3 at d = r
@@ -60,8 +63,9 @@ def field(t):
     wt = (38 * s) + 14 * s * np.sin(2 * np.pi * (xx[0] / (360 * s)) - ph + 2) + 8 * s * np.sin(2 * np.pi * (xx[0] / (150 * s)) + 3 * ph)
     pb = np.clip((yy - wb[None, :]) / (90 * s) + .75, 0, 1.6)
     pt = np.clip((wt[None, :] - yy) / (70 * s) + .75, 0, 1.6)
-    F += (pb ** 2 + pt ** 2) * .9
-    tint += pt ** 2 * .9
+    if POOLS:
+        F += (pb ** 2 + pt ** 2) * .9
+        tint += pt ** 2 * .9
     return F, np.clip(tint / np.maximum(F, 1e-4), 0, 1)
 
 
@@ -82,8 +86,10 @@ def frame(t):
     wax = col * (.55 + .55 * core) + HOT * (.22 * core ** 3)      # glows from inside, hot centre
     img = BG * (1 - m[..., None]) + wax * m[..., None]
     lit = m[..., None] * col
-    img = img + .35 * cv2.GaussianBlur(lit, (0, 0), 10 * s) * (1 - .6 * m[..., None]) \
-              + .30 * cv2.GaussianBlur(lit, (0, 0), 45 * s)
+    q = cv2.resize(lit, (W // 4, H // 4), interpolation=cv2.INTER_AREA)
+    g1 = cv2.resize(cv2.GaussianBlur(q, (0, 0), 2.5 * s), (W, H), interpolation=cv2.INTER_LINEAR)
+    g2 = cv2.resize(cv2.GaussianBlur(q, (0, 0), 11.25 * s), (W, H), interpolation=cv2.INTER_LINEAR)
+    img = img + .35 * g1 * (1 - .6 * m[..., None]) + .30 * g2
     kk = .82
     img = np.where(img > kk, kk + .11 * np.tanh((img - kk) / .11), img) + DITH
     return (np.clip(img, 0, 1) * 255 + .5).astype(np.uint8)
@@ -98,7 +104,7 @@ if TEST:
 
 tmp = OUT + ".tmp.mp4"
 e = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
-                      "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+                      "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "veryfast", "-crf", "14" if W * H > 1.5e6 else "18",
                       "-pix_fmt", "yuv420p", "-movflags", "+faststart", tmp], stdin=subprocess.PIPE)
 for t in range(L):
     e.stdin.write(frame(t).tobytes())
