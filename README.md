@@ -100,7 +100,7 @@ Previews of everything are in `previews/`. The old 30 fps masters were removed b
   - composite over a nebula or Pillars loop for a preview
 
 ### Converting for disguise
-- **Windows (Troy):** install ffmpeg once with `winget install --id Gyan.FFmpeg -e` in PowerShell, then double-click `MAKE_PRORES.bat` in the repo folder. It runs `scripts/make_prores.ps1`.
+- **Windows (Troy):** install ffmpeg once with `winget install --id Gyan.FFmpeg -e` in PowerShell, then double-click `MAKE_PRORES.bat`, which must sit in the folder that contains `masters`. It's self-contained; `scripts/make_prores.ps1` is an optional PowerShell version.
 - **Mac/Linux:** run `bash scripts/make_prores.sh`.
 - Output goes to `./prores/`, and files already converted are skipped.
 - ProRes 422 HQ size at 60 fps: about 3.6 GB per 24 s for A, about 1.4 GB for B, about 3.2 GB for the ceiling. Roughly 20 GB for everything.
