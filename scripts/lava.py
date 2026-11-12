@@ -7,9 +7,11 @@ OUT, W, H = sys.argv[1], int(sys.argv[2]), int(sys.argv[3])
 FLAGS = sys.argv[4:]
 TEST = "test" in FLAGS
 POOLS = "nopools" not in FLAGS
+CLASSIC = "classic" in FLAGS
+FIXED = "fixed" in FLAGS
 SEED = int([f.split("=")[1] for f in FLAGS if f.startswith("seed=")][0]) if any(f.startswith("seed=") for f in FLAGS) else 42
 FPS, L = 30, 720
-s = H / 720.0                                     # scale: constants are written for 720 tall
+s = 1.0 if FIXED else H / 720.0                   # fixed => same blob size in px on every screen
 rng = np.random.default_rng(SEED)
 
 # palette: neon pink / neon blue on near-black violet
@@ -18,12 +20,19 @@ BG_BOT = np.array([.06, .02, .12], np.float32)
 PINK   = np.array([1.00, .10, .62], np.float32)
 BLUE   = np.array([.08, .52, 1.00], np.float32)
 HOT    = np.array([1.00, .80, .95], np.float32)   # near-white tube core
+if CLASSIC:                                       # sampled from Troy's reference lamp photo
+    BG_TOP = np.array([.17, .12, .30], np.float32)
+    BG_BOT = np.array([.30, .25, .58], np.float32)
+    W_EDGE = np.array([.78, .00, .14], np.float32)
+    W_MID  = np.array([.96, .22, .22], np.float32)
+    W_CORE = np.array([.99, .45, .32], np.float32)
+    W_HOT  = np.array([1.0, .60, .41], np.float32)
 
 # --- blobs: periodic paths --------------------------------------------------
-NB = max(5, int(round(9 * (W / H) / (16 / 9))))
+NB = max(5, int(round(9 * .65 * W * H / (1280 * 720)))) if FIXED else max(5, int(round(9 * (W / H) / (16 / 9))))
 bx0 = ((np.arange(NB) + rng.uniform(.15, .85, NB)) / NB * .9 + .05)[rng.permutation(NB)] * W
-by0 = rng.uniform(.25, .75, NB) * H
-ay = rng.uniform(.14, .26, NB) * H                # vertical travel (slow)
+by0 = (rng.uniform(.18, .82, NB) if FIXED else rng.uniform(.25, .75, NB)) * H
+ay = rng.uniform(.14, .26, NB) * (720 * s if FIXED else H)   # vertical travel (slow)
 ky = np.ones(NB, int)                             # one rise+fall per 24 s loop
 py = rng.uniform(0, 2 * np.pi, NB)
 ax = rng.uniform(10, 45, NB) * s
@@ -82,14 +91,22 @@ def frame(t):
     gm = np.sqrt(gx * gx + gy * gy) + 1e-6
     m = np.clip((F - T) / (2.0 * gm) + .5, 0, 1)                 # soft 2-px edge
     core = (1 - np.exp(-np.clip(F - T, 0, None) / (1.1 * T)))[..., None]
-    col = PINK * (1 - tint[..., None]) + BLUE * tint[..., None]
-    wax = col * (.55 + .55 * core) + HOT * (.22 * core ** 3)      # glows from inside, hot centre
+    if CLASSIC:
+        c = core
+        base = (.80 + .30 * vgrad)                                 # lit from the lamp base
+        col = (W_EDGE * (1 - c) ** 2 + W_MID * 2 * c * (1 - c) + W_CORE * c ** 2) * base
+        wax = col + W_HOT * (.12 * c ** 3)
+        col = col * .9
+    else:
+        col = PINK * (1 - tint[..., None]) + BLUE * tint[..., None]
+        wax = col * (.55 + .55 * core) + HOT * (.22 * core ** 3)      # glows from inside, hot centre
     img = BG * (1 - m[..., None]) + wax * m[..., None]
     lit = m[..., None] * col
     q = cv2.resize(lit, (W // 4, H // 4), interpolation=cv2.INTER_AREA)
     g1 = cv2.resize(cv2.GaussianBlur(q, (0, 0), 2.5 * s), (W, H), interpolation=cv2.INTER_LINEAR)
     g2 = cv2.resize(cv2.GaussianBlur(q, (0, 0), 11.25 * s), (W, H), interpolation=cv2.INTER_LINEAR)
-    img = img + .35 * g1 * (1 - .6 * m[..., None]) + .30 * g2
+    gk = .5 if CLASSIC else 1.0                                 # warm glow on blue: keep it subtle
+    img = img + gk * (.35 * g1 * (1 - .6 * m[..., None]) + .30 * g2)
     kk = .82
     img = np.where(img > kk, kk + .11 * np.tanh((img - kk) / .11), img) + DITH
     return (np.clip(img, 0, 1) * 255 + .5).astype(np.uint8)
