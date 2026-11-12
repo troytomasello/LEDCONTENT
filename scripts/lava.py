@@ -9,29 +9,27 @@ FPS, L = 30, 720
 s = H / 720.0                                     # scale: constants are written for 720 tall
 rng = np.random.default_rng(42)
 
-# palette (nebula family)
-BG_TOP = np.array([.025, .008, .060], np.float32)
-BG_BOT = np.array([.20, .035, .22], np.float32)
-CORE   = np.array([1.00, .38, .72], np.float32)   # hot pink
-MID    = np.array([.80, .12, .55], np.float32)    # magenta
-EDGE   = np.array([.36, .07, .55], np.float32)    # violet
-LILAC  = np.array([.62, .48, .98], np.float32)    # periwinkle accent
-SPEC   = np.array([1.0, .86, .96], np.float32)
+# palette: neon pink / neon blue on near-black violet
+BG_TOP = np.array([.012, .006, .035], np.float32)
+BG_BOT = np.array([.06, .02, .12], np.float32)
+PINK   = np.array([1.00, .10, .62], np.float32)
+BLUE   = np.array([.08, .52, 1.00], np.float32)
+HOT    = np.array([1.00, .80, .95], np.float32)   # near-white tube core
 
 # --- blobs: periodic paths --------------------------------------------------
-NB = 13
+NB = 9
 bx0 = rng.uniform(.08, .92, NB) * W
 by0 = rng.uniform(.25, .75, NB) * H
-ay = rng.uniform(.18, .42, NB) * H                # vertical travel
-ky = rng.choice([1, 1, 2], NB)                    # cycles per loop (1 = 24 s up+down)
+ay = rng.uniform(.14, .26, NB) * H                # vertical travel (slow)
+ky = np.ones(NB, int)                             # one rise+fall per 24 s loop
 py = rng.uniform(0, 2 * np.pi, NB)
 ax = rng.uniform(10, 45, NB) * s
-kx = rng.integers(1, 4, NB)
+kx = rng.integers(1, 3, NB)
 px = rng.uniform(0, 2 * np.pi, NB)
-rad = rng.uniform(38, 78, NB) * s
-kr = rng.integers(1, 4, NB)
+rad = rng.uniform(70, 125, NB) * s
+kr = rng.integers(1, 3, NB)
 pr = rng.uniform(0, 2 * np.pi, NB)
-lil = (rng.random(NB) < .25).astype(np.float32)   # a few periwinkle-tinted blobs
+lil = np.array([0, 1, 0, 1, 0, 1, 1, 0, 0.5], np.float32)[:NB]   # 0 = pink, 1 = blue
 
 yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
 T = 0.42                                          # iso threshold: wyvill (1-.25)^3 at d = r
@@ -63,6 +61,7 @@ def field(t):
     pb = np.clip((yy - wb[None, :]) / (90 * s) + .75, 0, 1.6)
     pt = np.clip((wt[None, :] - yy) / (70 * s) + .75, 0, 1.6)
     F += (pb ** 2 + pt ** 2) * .9
+    tint += pt ** 2 * .9
     return F, np.clip(tint / np.maximum(F, 1e-4), 0, 1)
 
 
@@ -77,23 +76,14 @@ def frame(t):
     F, tint = field(t)
     gy, gx = np.gradient(F)
     gm = np.sqrt(gx * gx + gy * gy) + 1e-6
-    m = np.clip((F - T) / gm + .5, 0, 1)                         # 1-px antialiased edge
-    h = 1 - np.exp(-np.clip(F - T, 0, None) / (0.9 * T))         # dome height, never plateaus
-    hy, hx = np.gradient(cv2.GaussianBlur(h, (0, 0), 1.5 * s))
-    k = 38 * s
-    nx, ny, nz = -hx * k, -hy * k, np.ones_like(h)
-    nn = np.sqrt(nx * nx + ny * ny + 1); nx, ny, nz = nx / nn, ny / nn, nz / nn
-    diff = np.clip(nx * LIGHT[0] + ny * LIGHT[1] + nz * LIGHT[2], 0, 1)
-    spec = np.clip(nx * HALF[0] + ny * HALF[1] + nz * HALF[2], 0, 1) ** 60
-    rim = (1 - nz) ** 2.5 * np.clip(ny, 0, 1)                     # glow bouncing up from the lamp base
-    core = h[..., None]
-    core = core ** 1.3
-    wax = EDGE * (1 - core) ** 2 + MID * 2 * core * (1 - core) + CORE * core ** 2
-    wax = wax * (1 - .55 * tint[..., None]) + LILAC * (.55 * tint[..., None]) * (.4 + .6 * core)
-    wax = wax * (.30 + .85 * diff[..., None]) + SPEC * (.55 * spec)[..., None] + CORE * (.45 * rim)[..., None]
+    m = np.clip((F - T) / (2.0 * gm) + .5, 0, 1)                 # soft 2-px edge
+    core = (1 - np.exp(-np.clip(F - T, 0, None) / (1.1 * T)))[..., None]
+    col = PINK * (1 - tint[..., None]) + BLUE * tint[..., None]
+    wax = col * (.55 + .55 * core) + HOT * (.22 * core ** 3)      # glows from inside, hot centre
     img = BG * (1 - m[..., None]) + wax * m[..., None]
-    glow = cv2.GaussianBlur(m[..., None] * (MID * .6 + CORE * .4), (0, 0), 28 * s)
-    img = img + .30 * (glow if glow.ndim == 3 else glow[..., None]) * (1 - m[..., None] * .7)
+    lit = m[..., None] * col
+    img = img + .35 * cv2.GaussianBlur(lit, (0, 0), 10 * s) * (1 - .6 * m[..., None]) \
+              + .30 * cv2.GaussianBlur(lit, (0, 0), 45 * s)
     kk = .82
     img = np.where(img > kk, kk + .11 * np.tanh((img - kk) / .11), img) + DITH
     return (np.clip(img, 0, 1) * 255 + .5).astype(np.uint8)
