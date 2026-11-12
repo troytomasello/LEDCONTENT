@@ -4,11 +4,11 @@ usage: porthole.py PLATE_PNG test|full [lo hi]
 import sys, subprocess, os, numpy as np, cv2
 args = sys.argv[1:]
 sys.argv = ["x"]
-exec(open("/home/claude/portal/render2.py").read().split("# ---------------- build world")[0])
+exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "render2.py")).read().split("# ---------------- build world")[0])
 
 OW, OH = 3840, 1536
 FPS, L = 30, 1800
-OUTD = "/home/claude/portal/out"
+OUTD = os.environ.get("LED_OUT", "out")
 plate = cv2.cvtColor(cv2.imread(args[0]), cv2.COLOR_BGR2RGB).astype(np.float32) / 255
 BH, BW = plate.shape[:2]                                   # 1720 x 4300
 

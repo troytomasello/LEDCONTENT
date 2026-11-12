@@ -1,9 +1,9 @@
 """Upstage viewscreen plate 3840x1536: graded Pillars centred, sides extended with the side-loop nebula engine.
 usage: widefill.py GRADED_WIDE_NPY OUT_PNG
 """
-import sys, numpy as np, cv2
+import os, sys, numpy as np, cv2
 sys.argv, args = ["x"], sys.argv[1:]
-src = open("/home/claude/portal/render2.py").read().split("# ---------------- build world")[0]
+src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "render2.py")).read().split("# ---------------- build world")[0]
 exec(src)
 
 TW, TH = int(args[2]), int(args[3])

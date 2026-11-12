@@ -5,7 +5,7 @@ usage: pillars_flow.py PLATE_PNG OUT_MP4 OUT_W  (OUT_W=1280 preview, 3840 master
 import sys, os, subprocess, numpy as np, cv2
 args = sys.argv[1:]
 sys.argv = ["x"]
-exec(open("/home/claude/portal/render2.py").read().split("# ---------------- build world")[0])
+exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "render2.py")).read().split("# ---------------- build world")[0])
 
 OW = int(args[2]); OH = OW * 2 // 5                     # 2.5:1 (3840x1536 / 1280x512)
 FPS, L = 30, 720

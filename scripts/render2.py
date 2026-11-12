@@ -2,7 +2,7 @@
 B (house left) 3648x576; C (house right) 1728x576 = mirrored crop of B (drift reverses).
 usage: render2.py test | full | widefill
 """
-import sys, subprocess, numpy as np, cv2
+import os, sys, subprocess, numpy as np, cv2
 
 FPS = 60
 LOOP_S, XF_S = 24, 6                      # loop length, crossfade length (s)
@@ -11,7 +11,7 @@ W, H, WC, X0 = 3648, 576, 1728, 960
 WP = 6144                                  # world width (periodic noise)
 # drift speeds in px/s (v01 was 60 / 120 / 180)
 V_NEB, V_FAR, V_WISP, V_MID, V_NEAR = 4.0, 6.0, 9.0, 11.0, 18.0
-OUT = "/home/claude/portal/out60"
+OUT = os.environ.get("LED_OUT", "out")
 
 VOID   = np.array([.022, .010, .055], np.float32)
 SKY    = np.array([.26, .22, .58], np.float32)

@@ -5,7 +5,7 @@ usage: flowloop.py FRAMES_DIR ZOOM_TOTAL OUT_MP4 [test]
 import sys, os, glob, subprocess, numpy as np, cv2
 args = sys.argv[1:]
 sys.argv = ["x"]
-exec(open("/home/claude/portal/render2.py").read().split("# ---------------- build world")[0])
+exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "render2.py")).read().split("# ---------------- build world")[0])
 
 FR = sorted(glob.glob(os.path.join(args[0], "f*.png")))
 ZT = float(args[1])
