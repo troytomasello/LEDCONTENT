@@ -56,6 +56,11 @@ The LED floor has been cut.
 - `lava.py`: lava lamp loop for any screen size (`seed=`, `nopools`, `classic` palette, `fixed` = same blob size on every screen).
 - `pillars_flow.py`: flowing-gas loop for A. Use `1280` for the preview and `3840` for the master.
 
+## Convert to ProRes for disguise (run locally)
+From the repo folder: `bash scripts/make_prores.sh` (ProRes 422 HQ; pass `2` for plain 422). Output goes to `./prores/`.
+One file: `ffmpeg -i INPUT.mp4 -c:v prores_ks -profile:v 3 -vendor apl0 -pix_fmt yuv422p10le -an OUTPUT_PRORES.mov`
+Sizes per 24 s loop at 422 HQ: about 1.8 GB upstage, 0.7 GB house left, 1.6 GB ceiling.
+
 ## Convert to HAP (run locally)
 ```
 ffmpeg -i INPUT.mp4 -c:v hap -format hap_q -chunks 4 OUTPUT_HAPQ.mov
