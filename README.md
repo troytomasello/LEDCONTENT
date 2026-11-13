@@ -1,6 +1,8 @@
 # Retro 70s Space Party: LED Content (handoff notes)
 
-Everything a new chat needs to pick this project up. Last updated 2026-11-12.
+Everything a new chat needs to pick this project up. Last updated 2026-11-13.
+
+> **2026-11-13: the client dropped screen C (house right, 1728 × 576).** Don't make content for it. The active package is **A (upstage), B (house left) and the ceiling**. C's files were removed from the repo (they remain in the git history).
 
 ---
 
@@ -28,7 +30,7 @@ Everything a new chat needs to pick this project up. Last updated 2026-11-12.
 |---|---|---|---|
 | A | Upstage viewscreen, behind the DJ | 3840 × 1536 (2.5:1) | The DJ booth covers the lower centre. |
 | B | Long porthole window, house left | 3648 × 576 | Framed by a portal facade. |
-| C | Short porthole window, house right | 1728 × 576 | Framed by a portal facade. |
+| ~~C~~ | ~~Short porthole window, house right~~ | ~~1728 × 576~~ | **Dropped by the client 2026-11-13. Not in the package.** |
 | Ceiling | 960 × 5760 canvas | 5 columns × 30 tiles of 192 × 192 px | Troy said 28 panels × 5 rows = 140 tiles, but the map shows 150 slots; to confirm. |
 
 - The LED floor was cut.
@@ -59,9 +61,9 @@ Everything a new chat needs to pick this project up. Last updated 2026-11-12.
 ## 5. Current deliverables (all 24 s, 60 fps, in `masters/`)
 | Look | Screens | Folder | Details |
 |---|---|---|---|
-| Nebula drift v04 | B, C, ceiling | `nebula_drift/` | Slow parallax drift (4–18 px/s), churning clouds, sub-pixel twinkling stars, 6 s crossfade at the loop point. C is a mirrored crop of B. The ceiling has no edge darkening. Approved. |
-| Lava neon v03 | A, B, C, ceiling | `lava_neon/` | Glowing neon wax with no shine. Blob size scales with screen height. Ceiling has no pools. Approved. |
-| Lava classic v04 big | A, B, C, ceiling | `lava_classic/` | Red/orange on blue. Blob radius 150–250 px, the same physical size everywhere, about 60–70% coverage. B uses 8 blobs, C uses 4 (seed 34). Approved ("looks great"). |
+| Nebula drift v04 | B, ceiling | `nebula_drift/` | Slow parallax drift (4–18 px/s), churning clouds, sub-pixel twinkling stars, 6 s crossfade at the loop point. The ceiling has no edge darkening. Approved. |
+| Lava neon v03 | A, B, ceiling | `lava_neon/` | Glowing neon wax with no shine. Blob size scales with screen height. Ceiling has no pools. Approved. |
+| Lava classic v04 big | A, B, ceiling | `lava_classic/` | Red/orange on blue. Blob radius 150–250 px, the same physical size everywhere, about 60–70% coverage. B uses 8 blobs. Approved ("looks great"). |
 | Pillars still v02 | A | `stills/` | Regraded Pillars at 3840 × 1536, sides extended with matching nebula. The 4300 × 1720 oversized plate is also there. |
 | Pillars from Flow clip v01 | A | `pillars_flow_30fps/` | From Troy's 8 s Flow clip: push-in removed, slowed 3.4×, stars replaced. Still 30 fps and 720p; redo from a 4K Flow export at 60 fps. |
 
@@ -108,7 +110,7 @@ Previews of everything are in `previews/`. The old 30 fps masters were removed b
 ## 8. Scripts (`scripts/`, run from any folder; output goes to `$LED_OUT`, default `./out`)
 | Script | What it does | Key settings |
 |---|---|---|
-| `render2.py` | Nebula drift for B and C, written in chunks | `python3 render2.py full LO HI` writes `partB_LO.mp4` / `partC_LO.mp4`; join them with the ffmpeg concat demuxer. `test N` renders a test frame. `FPS=60`, `LOOP_S=24`, `XF_S=6`. |
+| `render2.py` | Nebula drift for B, written in chunks | `python3 render2.py full LO HI` writes `partB_LO.mp4` (it also writes a `partC_LO.mp4` for the dropped screen C; ignore or delete it); join them with the ffmpeg concat demuxer. `test N` renders a test frame. `FPS=60`, `LOOP_S=24`, `XF_S=6`. |
 | `render_ceiling.py` | Ceiling nebula, 960 × 5760 | Same chunk interface. Renders a 5760 × 960 strip and rotates it 90° counter-clockwise. |
 | `lava.py` | Lava for any size | `lava.py OUT W H [seed=N] [nopools] [classic] [fixed] [big] [nb=N] [test]`. The ceiling is rendered as a `5760 960 ... nopools` strip, then `ffmpeg -vf transpose=2`. |
 | `grade.py` / `widefill.py` | Pillars regrade and nebula-extended wide plate | `grade.py SRC OUT_SQ OUT_WIDE PALETTE_NPY TW TH` |
@@ -118,14 +120,14 @@ Previews of everything are in `previews/`. The old 30 fps masters were removed b
 
 **Seeds and flags used:**
 - Nebula: fixed inside the scripts.
-- Neon lava: A seed=11, B 22, C 33, ceiling 44 + nopools.
-- Classic lava: `classic fixed big`; A seed=11, B seed=22 nb=8, C seed=34 nb=4, ceiling seed=44 nopools.
+- Neon lava: A seed=11, B 22, ceiling 44 + nopools.
+- Classic lava: `classic fixed big`; A seed=11, B seed=22 nb=8, ceiling seed=44 nopools.
 
 **Render times** (2-core cloud workspace, 60 fps):
 - Ceiling nebula: about 65 CPU-minutes.
 - Lava A: about 26–33 minutes.
 - Lava ceiling: about 25 minutes.
-- B and C: 5–15 minutes.
+- B: 5–15 minutes.
 - Run two jobs in parallel with `xargs -P 2`.
 - Python gotcha: multiplying float32 arrays by `np.cos(...)` scalars promotes them to float64, which makes renders about 2.5× slower. Wrap those scalars in `float()`.
 
